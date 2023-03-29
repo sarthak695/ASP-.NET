@@ -1,0 +1,168 @@
+csharp
+
+1.Category Model
+
+public class Category
+{
+    [Key]
+    public int CategoryId { get; set; }
+    public string CategoryName { get; set; }
+}
+
+2.Product Model
+
+public class Product
+{
+    [Key]
+    public int ProductId { get; set; }
+    public string ProductName { get; set; }
+
+    [ForeignKey("Category")]
+    public int CategoryId { get; set; }
+    public virtual Category Category { get; set; }
+}
+
+3.DbContext class
+
+public class MyDbContext : DbContext
+{
+    public MyDbContext() : base("name=MyDbContext")
+    {
+    }
+
+    public DbSet<Category> Categories { get; set; }
+    public DbSet<Product> Products { get; set; }
+}
+
+4. Category Controller
+
+public class CategoryController : Controller
+{
+    private MyDbContext db = new MyDbContext();
+
+    // GET: Category
+    public ActionResult Index()
+    {
+        var categories = db.Categories.ToList();
+        return View(categories);
+    }
+
+    // GET: Category/Create
+    public ActionResult Create()
+    {
+        return View();
+    }
+
+    // POST: Category/Create
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public ActionResult Create([Bind(Include = "CategoryId,CategoryName")] Category category)
+    {
+        if (ModelState.IsValid)
+        {
+            db.Categories.Add(category);
+            db.SaveChanges();
+            return RedirectToAction("Index");
+        }
+
+        return View(category);
+    }
+
+    // GET: Category/Edit/5
+    public ActionResult Edit(int? id)
+    {
+        if (id == null)
+        {
+            return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+        }
+
+        Category category = db.Categories.Find(id);
+
+        if (category == null)
+        {
+            return HttpNotFound();
+        }
+
+        return View(category);
+    }
+
+    // POST: Category/Edit/5
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public ActionResult Edit([Bind(Include = "CategoryId,CategoryName")] Category category)
+    {
+        if (ModelState.IsValid)
+        {
+            db.Entry(category).State = EntityState.Modified;
+            db.SaveChanges();
+            return RedirectToAction("Index");
+        }
+
+        return View(category);
+    }
+
+    // GET: Category/Delete/5
+    public ActionResult Delete(int? id)
+    {
+        if (id == null)
+        {
+            return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
+        }
+
+        Category category = db.Categories.Find(id);
+
+        if (category == null)
+        {
+            return HttpNotFound();
+        }
+
+        return View(category);
+    }
+
+    // POST: Category/Delete/5
+    [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
+    public ActionResult DeleteConfirmed(int id)
+    {
+        Category category = db.Categories.Find(id);
+        db.Categories.Remove(category);
+        db.SaveChanges();
+        return RedirectToAction("Index");
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            db.Dispose();
+        }
+        base.Dispose(disposing);
+    }
+}
+
+5.Product Controller
+
+public class ProductController : Controller
+{
+    private MyDbContext db = new MyDbContext();
+
+    // GET: Product
+    public ActionResult Index(int? page)
+    {
+        int pageSize = 10;
+        int pageNumber = (page ?? 1);
+
+        var products = db.Products.Include(p => p.Category)
+                                    .OrderBy(p => p.ProductId)
+                                    .Skip((pageNumber - 1) * pageSize)
+                                    .Take(pageSize)
+                                    .ToList();
+
+        return View(products);
+    }
+
+    // GET: Product/Create
+    public ActionResult Create()
+    {
+       
+
